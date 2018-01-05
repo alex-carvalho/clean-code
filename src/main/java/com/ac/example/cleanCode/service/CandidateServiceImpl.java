@@ -3,6 +3,8 @@ package com.ac.example.cleanCode.service;
 import com.ac.example.cleanCode.model.Candidate;
 import com.ac.example.cleanCode.model.Course;
 import com.ac.example.cleanCode.repository.CandidateRepository;
+import com.ac.example.cleanCode.service.exceptions.CandidateDoesntMeetRequirementsException;
+import com.ac.example.cleanCode.service.exceptions.NoSessionsApprovedException;
 import com.ac.example.cleanCode.utis.WebBrowser;
 
 import java.util.Arrays;
@@ -19,139 +21,80 @@ public class CandidateServiceImpl implements CandidateService {
         this.repository = repository;
     }
 
-    /**
-     * Registra um candidato
-     *
-     * @param candidate
-     * @return
-     */
     @Override
     public int register(Candidate candidate) {
-        //inicialicacao das variaveis
-        Integer candidateId = null;
-        boolean good = false;
-        boolean appr = false;
-        //var nt = new List<String> {"MVC4", "Node.js", "CouchDB", "KendoUI", "Dapper", "Angular"};
-        List<String> ot = Arrays.asList("Cobol", "Punch Cards", "Commodore", "VBScript");
+        validateRegistration(candidate);
 
-        //ISSUE #5274 12/10/2012
-        // Não estava sendo filtrado o dominio então adicionei
-        List<String> domains = Arrays.asList("aol.com", "hotmail.com", "prodigy.com", "CompuServe.com");
+        return repository.save(candidate);
+    }
 
-        if (candidate.getFirstName() != null && !candidate.getFirstName().isEmpty()) {
-            if (candidate.getLastName() != null && !candidate.getLastName().isEmpty()) {
+    private void validateRegistration(Candidate candidate) {
+        validateData(candidate);
 
+        boolean isQualified = candidateExceptional(candidate) || !obviousRedFlags(candidate);
 
-                if (candidate.getEmail() != null && !candidate.getEmail().isEmpty()) {
-                    //adiciona as empresas na lista
-                    List<String> emps = Arrays.asList("Microsoft", "Google", "Fog Creek Software", "37Signals");
+        if (!isQualified) {
+            throw new CandidateDoesntMeetRequirementsException("This Candidate doesn't meet our standards.");
+        }
 
-                    //ISSUE #838 Jimmy
-                    //Antes o  numero e certificacoes preciso era 2 agora e 3
-                    good = ((candidate.getExp() > 10 || candidate.isHasBlog() || candidate.getCertifications().size() > 3 || emps.contains(candidate.getEmployer())));
+        approveCourses(candidate);
+    }
 
+    private void validateData(Candidate candidate) {
+        if (candidate.getFirstName() == null || candidate.getFirstName().isEmpty()) {
+            throw new IllegalArgumentException("First Name is required.");
+        }
+        if (candidate.getLastName() == null || candidate.getLastName().isEmpty()) {
+            throw new IllegalArgumentException("Last Name is required.");
+        }
+        if (candidate.getEmail() == null || candidate.getEmail().isEmpty()) {
+            throw new IllegalArgumentException("Email is required.");
+        }
+        if (candidate.getCourseList().isEmpty()) {
+            throw new IllegalArgumentException("Can't register speaker with no sessions to present.");
+        }
+    }
 
-                    if (!good) {
-                        //Split para pegar apenas o dominio
-                        String emailDomain = candidate.getEmail().split("@")[1];
+    private boolean candidateExceptional(Candidate candidate) {
+        if (candidate.getYearsExperience() > 10) return true;
+        if (candidate.hasBlog()) return true;
+        if (candidate.getCourseList().size() > 3) return true;
 
-                        if (!domains.contains(emailDomain) && (!(candidate.getBrowser().getName() == WebBrowser.BrowserName.INTERNET_EXPLORER && candidate.getBrowser().getMajorVersion() < 9))) {
-                            good = true;
-                        }
-                    }
+        List<String> preferredEmployers = Arrays.asList("Pluralsight", "Microsoft", "Google", "Fog Creek Software", "37Signals", "Telerik");
 
-                    if (good) {
-                        //ISSUE #5013 1/12/2012
-                        //Agora precisa ter pelo menos um um curso
-                        if (candidate.getCourseList().size() != 0) {
-                            for (Course course : candidate.getCourseList()) {
-                                //for (ourse course : candidate.getCourseList())
-                                //{
-                                //    if (course.getTitle().contains(tech))
-                                //    {
-                                //        course.setApproved(true);
-                                //        break;
-                                //    }
-                                //}
+        return preferredEmployers.contains(candidate.getEmployer());
+    }
 
-                                for (String tech : ot) {
-                                    if (course.getTitle().contains(tech) || course.getDescription().contains(tech)) {
-                                        course.setApproved(false);
-                                        break;
-                                    } else {
-                                        course.setApproved(true);
-                                        appr = true;
-                                    }
-                                }
-                            }
-                        } else {
-                            throw new IllegalArgumentException("Can't register candidate with no couse to present.");
-                        }
+    private boolean obviousRedFlags(Candidate candidate) {
+        String emailDomain = candidate.getEmail().split("@")[1];
 
-                        if (appr) {
+        List<String> ancientEmailDomains = Arrays.asList("aol.com", "hotmail.com", "prodigy.com", "compuserve.com");
 
+        return (ancientEmailDomains.contains(emailDomain) ||
+                ((candidate.getBrowser().getName() == WebBrowser.BrowserName.INTERNET_EXPLORER
+                        && candidate.getBrowser().getMajorVersion() < 9)));
+    }
 
-                            // se chegarmos até aqui é aprovado
-                            // vamos em frente para o registro
-                            // Vamos calcular a taxa de inscrição.
-                            // Mais pagam uma taxa menor.
-                            if (candidate.getExp() <= 1) {
-                                candidate.setRegistrationFee(500);
-                            } else if (candidate.getExp() >= 2 && candidate.getExp() <= 3) {
-                                candidate.setRegistrationFee(250);
-                            } else if (candidate.getExp() >= 4 && candidate.getExp() <= 5) {
-                                candidate.setRegistrationFee(100);
-                            } else if (candidate.getExp() >= 6 && candidate.getExp() <= 9) {
-                                candidate.setRegistrationFee(50);
-                            } else {
-                                candidate.setRegistrationFee(0);
-                            }
+    private void approveCourses(Candidate candidate) {
+        for (Course course : candidate.getCourseList()) {
+            course.setApproved(!coursesIsAboutOldTechnology(course));
+        }
 
+        boolean noSessionsApproved = candidate.getCourseList().stream().noneMatch(Course::isApproved);
 
-                            // Agora salvar o objeto no banco
-                            try {
-                                candidateId = repository.save(candidate);
-                            } catch (Exception e) {
-                                //Caso ocorra algum erro
-                                e.printStackTrace();
-                            }
-                        } else {
-                            throw new NoSessionsApprovedException("No sessions approved.");
-                        }
-                    } else {
-                        throw new CandidateDoesntMeetRequirementsException("Candidate doesn't meet our abitrary and capricious standards.");
-                    }
+        if (noSessionsApproved) {
+            throw new NoSessionsApprovedException("No sessions approved");
+        }
+    }
 
-                } else {
-                    throw new IllegalArgumentException("Email is required.");
-                }
-            } else {
-                throw new IllegalArgumentException("Last name is required.");
+    private boolean coursesIsAboutOldTechnology(Course course) {
+        List<String> oldTechnologies = Arrays.asList("Cobol", "Punch Cards", "Commodore", "VBScript");
+
+        for (String oldTechnology : oldTechnologies) {
+            if (course.getTitle().contains(oldTechnology) || course.getDescription().contains(oldTechnology)) {
+                return true;
             }
-        } else {
-            throw new IllegalArgumentException("First Name is required");
         }
-
-        //Se chegou até aqui ocorreu tudo certo e esta gravado no banco
-        return candidateId;
-    }
-
-    public class CandidateDoesntMeetRequirementsException extends RuntimeException {
-        public CandidateDoesntMeetRequirementsException(String message) {
-            super(message);
-        }
-
-        public CandidateDoesntMeetRequirementsException(String format, Object[] args) {
-            super(String.format(format, args));
-        }
-
-    }
-
-    public class NoSessionsApprovedException extends RuntimeException {
-
-
-        public NoSessionsApprovedException(String message) {
-            super(message);
-        }
+        return false;
     }
 }

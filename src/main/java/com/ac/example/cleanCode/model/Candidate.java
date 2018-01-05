@@ -12,7 +12,7 @@ public class Candidate {
     private String firstName;
     private String lastName;
     private String email;
-    private int exp;
+    private int yearsExperience;
     private boolean hasBlog;
     private String blogURL;
     private WebBrowser browser;
@@ -21,11 +21,11 @@ public class Candidate {
     private List<Course> courseList;
     private int registrationFee;
 
-    public Candidate(String firstName, String lastName, String email, int exp, boolean hasBlog, String blogURL, WebBrowser browser, List<String> certifications, String employer, List<Course> courseList) {
+    public Candidate(String firstName, String lastName, String email, int yearsExperience, boolean hasBlog, String blogURL, WebBrowser browser, List<String> certifications, String employer, List<Course> courseList) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
-        this.exp = exp;
+        this.yearsExperience = yearsExperience;
         this.hasBlog = hasBlog;
         this.blogURL = blogURL;
         this.browser = browser;
@@ -82,15 +82,15 @@ public class Candidate {
         this.certifications = certifications;
     }
 
-    public int getExp() {
-        return exp;
+    public int getYearsExperience() {
+        return yearsExperience;
     }
 
-    public void setExp(int exp) {
-        this.exp = exp;
+    public void setYearsExperience(int yearsExperience) {
+        this.yearsExperience = yearsExperience;
     }
 
-    public boolean isHasBlog() {
+    public boolean hasBlog() {
         return hasBlog;
     }
 

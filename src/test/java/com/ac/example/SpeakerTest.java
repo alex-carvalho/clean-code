@@ -6,6 +6,8 @@ import com.ac.example.cleanCode.repository.CandidateRepository;
 import com.ac.example.cleanCode.repository.CandidateRepositoryImpl;
 import com.ac.example.cleanCode.service.CandidateService;
 import com.ac.example.cleanCode.service.CandidateServiceImpl;
+import com.ac.example.cleanCode.service.exceptions.CandidateDoesntMeetRequirementsException;
+import com.ac.example.cleanCode.service.exceptions.NoSessionsApprovedException;
 import com.ac.example.cleanCode.utis.WebBrowser;
 import org.junit.Assert;
 import org.junit.Before;
@@ -81,7 +83,7 @@ public class SpeakerTest {
         Assert.assertNotNull(speakerId);
     }
 
-    @Test(expected = CandidateServiceImpl.NoSessionsApprovedException.class)
+    @Test(expected = NoSessionsApprovedException.class)
     public void testRegisterSingleSessionThatsOnOldTechThrowsNoSessionsApprovedException() {
         Candidate speaker = GetSpeakerThatWouldBeApproved();
         speaker.setCourseList(Arrays.asList(new Course("Cobol for dummies", "Intro to Cobol")));
@@ -97,7 +99,7 @@ public class SpeakerTest {
         service.register(speaker);
     }
 
-    @Test(expected = CandidateServiceImpl.CandidateDoesntMeetRequirementsException.class)
+    @Test(expected = CandidateDoesntMeetRequirementsException.class)
     public void testRegisterDoesntAppearExceptionalAndUsingOldBrowserThrowsSpeakerDoesntMeetRequirementsException() {
         Candidate speakerThatDoesntAppearExceptional = GetSpeakerThatWouldBeApproved();
         speakerThatDoesntAppearExceptional.setHasBlog(false);
@@ -106,7 +108,7 @@ public class SpeakerTest {
         service.register(speakerThatDoesntAppearExceptional);
     }
 
-    @Test(expected = CandidateServiceImpl.CandidateDoesntMeetRequirementsException.class)
+    @Test(expected = CandidateDoesntMeetRequirementsException.class)
     public void testRegisterDoesntAppearExceptionalAndHasAncientEmailThrowsSpeakerDoesntMeetRequirementsException() {
         Candidate speakerThatDoesntAppearExceptional = GetSpeakerThatWouldBeApproved();
         speakerThatDoesntAppearExceptional.setHasBlog(false);
