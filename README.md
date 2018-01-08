@@ -14,7 +14,7 @@ Os exemplos tem como base o curso https://www.pluralsight.com/courses/writing-cl
 Clean Code é a base para um software de qualidade:
 <br>
 
-![Imagem](clean-code.png)
+![Imagem](clean-code.PNG)
 
 
 ### Princípios do Clean Code:
